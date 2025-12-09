@@ -28,14 +28,27 @@ export const createFundingSource = async (
   options: CreateFundingSourceOptions
 ) => {
   try {
-    return await dwollaClient
-      .post(`customers/${options.customerId}/funding-sources`, {
-        name: options.fundingSourceName,
-        plaidToken: options.plaidToken,
-      })
-      .then((res) => res.headers.get("location"));
-  } catch (err) {
+    console.log('Creating funding source for customer:', options.customerId);
+    console.log('Bank name:', options.fundingSourceName);
+    
+    const response = await dwollaClient.post(`customers/${options.customerId}/funding-sources`, {
+      name: options.fundingSourceName,
+      plaidToken: options.plaidToken,
+    });
+    
+    const location = response.headers.get("location");
+    
+    if (!location) {
+      console.error('Funding source created but no location header returned');
+      throw new Error('Failed to create funding source: No location header returned');
+    }
+    
+    console.log('Funding source created successfully:', location);
+    return location;
+  } catch (err: any) {
     console.error("Creating a Funding Source Failed: ", err);
+    console.error("Error details:", JSON.stringify(err, null, 2));
+    throw new Error(`Failed to create funding source: ${err?.message || 'Unknown error'}`);
   }
 };
 
@@ -69,6 +82,21 @@ export const createTransfer = async ({
   amount,
 }: TransferParams) => {
   try {
+    // Log the URLs being sent for debugging
+    console.log('=== Transfer Request Details ===');
+    console.log('Source Funding Source URL:', sourceFundingSourceUrl);
+    console.log('Destination Funding Source URL:', destinationFundingSourceUrl);
+    console.log('Amount:', amount);
+    
+    // Validate URLs before sending
+    if (!sourceFundingSourceUrl || !destinationFundingSourceUrl) {
+      throw new Error("Funding source URLs are required for transfer");
+    }
+
+    if (!sourceFundingSourceUrl.includes('funding-sources') || !destinationFundingSourceUrl.includes('funding-sources')) {
+      throw new Error("Invalid funding source URL format. URLs must contain 'funding-sources'");
+    }
+
     const requestBody = {
       _links: {
         source: {
@@ -83,11 +111,44 @@ export const createTransfer = async ({
         value: amount,
       },
     };
-    return await dwollaClient
-      .post("transfers", requestBody)
-      .then((res) => res.headers.get("location"));
-  } catch (err) {
+    
+    console.log('Sending transfer request to Dwolla...');
+    const response = await dwollaClient.post("transfers", requestBody);
+    const location = response.headers.get("location");
+    
+    if (!location) {
+      console.error("Transfer created but no location header returned");
+      return null;
+    }
+    
+    console.log('Transfer created successfully:', location);
+    return location;
+  } catch (err: any) {
     console.error("Transfer fund failed: ", err);
+    console.error("Error details:", JSON.stringify(err, null, 2));
+    
+    // Extract more detailed error message from Dwolla response
+    let errorMessage = "Failed to create transfer. ";
+    
+    if (err?.body?._embedded?.errors) {
+      const errors = err.body._embedded.errors;
+      const errorMessages = errors.map((e: any) => e.message).join(", ");
+      errorMessage += errorMessages;
+      
+      // Check for specific error types
+      if (errors.some((e: any) => e.path?.includes("destination"))) {
+        errorMessage += " The recipient's bank account may not be properly connected or the funding source URL is invalid.";
+      } else if (errors.some((e: any) => e.path?.includes("source"))) {
+        errorMessage += " Your bank account may not be properly connected or the funding source URL is invalid.";
+      } else if (errors.some((e: any) => e.message?.toLowerCase().includes("balance"))) {
+        errorMessage += " Please check your account balance.";
+      }
+    } else {
+      errorMessage += err?.message || "Please check your account balance and try again.";
+    }
+    
+    // Re-throw error so it can be handled by the caller
+    throw new Error(errorMessage);
   }
 };
 

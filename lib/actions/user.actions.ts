@@ -16,6 +16,21 @@ const {
   APPWRITE_BANK_COLLECTION_ID: BANK_COLLECTION_ID,
 } = process.env;
 
+// Helper function to clean up Auth user (handles 404 errors gracefully)
+async function cleanupAuthUser(userService: any, userId: string) {
+  try {
+    await userService.delete(userId);
+    console.log('Auth user cleaned up successfully');
+  } catch (cleanupError: any) {
+    // Ignore 404 errors (user might not exist or already deleted)
+    if (cleanupError?.code === 404 || cleanupError?.type === 'user_not_found') {
+      console.log('Auth user already deleted or not found');
+    } else {
+      console.error('Error cleaning up Auth user:', cleanupError);
+    }
+  }
+}
+
 export const getUserInfo = async ({ userId }: getUserInfoProps) => {
   try {
     const { database } = await createAdminClient();
@@ -26,15 +41,23 @@ export const getUserInfo = async ({ userId }: getUserInfoProps) => {
       [Query.equal('userId', [userId])]
     )
 
+    if (!user.documents || user.documents.length === 0) {
+      console.log(`No database document found for userId: ${userId}`);
+      console.log(`Total documents in collection: ${user.total}`);
+      return null;
+    }
+
     return parseStringify(user.documents[0]);
   } catch (error) {
-    console.log(error)
+    console.error('Error in getUserInfo:', error)
+    return null;
   }
 }
 
 export const signIn = async ({ email, password }: signInProps) => {
   try {
     const { account } = await createAdminClient();
+    // const response = await account.createEmailPasswordSession(email, password);
     const session = await account.createEmailPasswordSession(email, password);
 
     cookies().set("appwrite-session", session.secret, {
@@ -46,7 +69,19 @@ export const signIn = async ({ email, password }: signInProps) => {
 
     const user = await getUserInfo({ userId: session.userId }) 
 
+    if (!user) {
+      // User exists in Auth but not in database - this can happen if sign-up didn't complete
+      // Return basic session info so user can still access the app
+      console.warn(`User ${session.userId} authenticated but no database document found`);
+      return parseStringify({
+        $id: session.userId,
+        userId: session.userId,
+        email: email,
+      });
+    }
+
     return parseStringify(user);
+    // return parseStringify(response);
   } catch (error) {
     console.error('Error', error);
   }
@@ -58,7 +93,7 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
   let newUserAccount;
 
   try {
-    const { account, database } = await createAdminClient();
+    const { account, database, user } = await createAdminClient();
 
     newUserAccount = await account.create(
       ID.unique(), 
@@ -69,14 +104,68 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
 
     if(!newUserAccount) throw new Error('Error creating user')
 
+    // Format dateOfBirth for Dwolla (must be YYYY-MM-DD format)
+    // Validate the date format
+    if (!userData.dateOfBirth || !userData.dateOfBirth.trim()) {
+      // Clean up Auth user if validation fails
+      await cleanupAuthUser(user, newUserAccount.$id);
+      throw new Error('Date of birth is required');
+    }
+
+    // Check if already in YYYY-MM-DD format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    let formattedDateOfBirth = userData.dateOfBirth.trim();
+    
+    if (!dateRegex.test(formattedDateOfBirth)) {
+      // Try to parse and reformat if not in correct format
+      try {
+        const date = new Date(formattedDateOfBirth);
+        if (isNaN(date.getTime()) || date.getFullYear() < 1900 || date.getFullYear() > new Date().getFullYear()) {
+          // Clean up Auth user if validation fails
+          await cleanupAuthUser(user, newUserAccount.$id);
+          throw new Error('Invalid date format. Please enter a valid date in YYYY-MM-DD format (e.g., 1990-01-15).');
+        }
+        formattedDateOfBirth = date.toISOString().split('T')[0];
+      } catch (error: any) {
+        console.error('Error formatting dateOfBirth:', error);
+        // Clean up Auth user if validation fails
+        await cleanupAuthUser(user, newUserAccount.$id);
+        // Re-throw the error if it's already our custom error
+        if (error.message && error.message.includes('Invalid date format')) {
+          throw error;
+        }
+        throw new Error('Invalid date of birth format. Please use YYYY-MM-DD format (e.g., 1990-01-15).');
+      }
+    }
+
+    console.log('Creating Dwolla customer for:', email);
     const dwollaCustomerUrl = await createDwollaCustomer({
-      ...userData,
-      type: 'personal'
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      email: userData.email,
+      type: 'personal',
+      address1: userData.address1,
+      city: userData.city,
+      state: userData.state,
+      postalCode: userData.postalCode,
+      dateOfBirth: formattedDateOfBirth,
+      ssn: userData.ssn
     })
 
-    if(!dwollaCustomerUrl) throw new Error('Error creating Dwolla customer')
+    console.log('Dwolla customer URL:', dwollaCustomerUrl);
+
+    if(!dwollaCustomerUrl) {
+      console.error('Dwolla customer creation failed - cleaning up Auth user');
+      // Clean up Auth user if Dwolla fails
+      await cleanupAuthUser(user, newUserAccount.$id);
+      throw new Error('Error creating Dwolla customer. Please check your information and try again.');
+    }
 
     const dwollaCustomerId = extractCustomerIdFromUrl(dwollaCustomerUrl);
+
+    console.log('Creating database document for user:', newUserAccount.$id);
+    console.log('Database ID:', DATABASE_ID);
+    console.log('Collection ID:', USER_COLLECTION_ID);
 
     const newUser = await database.createDocument(
       DATABASE_ID!,
@@ -90,6 +179,8 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
       }
     )
 
+    console.log('Database document created successfully:', newUser.$id);
+
     const session = await account.createEmailPasswordSession(email, password);
 
     cookies().set("appwrite-session", session.secret, {
@@ -101,7 +192,10 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
 
     return parseStringify(newUser);
   } catch (error) {
-    console.error('Error', error);
+    console.error('Error in signUp:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+    // Re-throw error so it can be handled by the UI
+    throw error;
   }
 }
 
@@ -111,6 +205,10 @@ export async function getLoggedInUser() {
     const result = await account.get();
 
     const user = await getUserInfo({ userId: result.$id})
+
+    if (!user) {
+      return null;
+    }
 
     return parseStringify(user);
   } catch (error) {
@@ -138,7 +236,7 @@ export const createLinkToken = async (user: User) => {
         client_user_id: user.$id
       },
       client_name: `${user.firstName} ${user.lastName}`,
-      products: ['auth'] as Products[],
+      products: ['auth'] as Products[], // 'auth' is required for processor tokens with Dwolla
       language: 'en',
       country_codes: ['US'] as CountryCode[],
     }
@@ -147,7 +245,8 @@ export const createLinkToken = async (user: User) => {
 
     return parseStringify({ linkToken: response.data.link_token })
   } catch (error) {
-    console.log(error);
+    console.error('Error creating Plaid link token:', error);
+    throw error;
   }
 }
 
@@ -203,16 +302,25 @@ export const exchangePublicToken = async ({
     const accountData = accountsResponse.data.accounts[0];
 
     // Create a processor token for Dwolla using the access token and account ID
+    // Note: The account must support money movement (ACH transfers)
+    // In Plaid Sandbox, use test institutions like: First Platypus Bank, Tartan Bank, or Houndstooth Bank
     const request: ProcessorTokenCreateRequest = {
       access_token: accessToken,
       account_id: accountData.account_id,
       processor: "dwolla" as ProcessorTokenCreateRequestProcessorEnum,
     };
 
-    const processorTokenResponse = await plaidClient.processorTokenCreate(request);
-    const processorToken = processorTokenResponse.data.processor_token;
+    let processorToken;
+    try {
+      const processorTokenResponse = await plaidClient.processorTokenCreate(request);
+      processorToken = processorTokenResponse.data.processor_token;
+    } catch (processorError: any) {
+      console.error('Error creating processor token:', processorError);
+      throw new Error('This bank account does not support money movement. Please try linking a different institution. In Plaid Sandbox, use: First Platypus Bank, Tartan Bank, or Houndstooth Bank.');
+    }
 
      // Create a funding source URL for the account using the Dwolla customer ID, processor token, and bank name
+     console.log('Creating funding source for bank:', accountData.name);
      const fundingSourceUrl = await addFundingSource({
       dwollaCustomerId: user.dwollaCustomerId,
       processorToken,
@@ -220,7 +328,12 @@ export const exchangePublicToken = async ({
     });
     
     // If the funding source URL is not created, throw an error
-    if (!fundingSourceUrl) throw Error;
+    if (!fundingSourceUrl) {
+      console.error('Funding source URL was not created');
+      throw new Error('Failed to create funding source. Please try again or contact support.');
+    }
+    
+    console.log('Funding source URL created:', fundingSourceUrl);
 
     // Create a bank account using the user ID, item ID, account ID, access token, funding source URL, and shareableId ID
     await createBankAccount({
@@ -270,9 +383,14 @@ export const getBank = async ({ documentId }: getBankProps) => {
       [Query.equal('$id', [documentId])]
     )
 
+    if (!bank.documents || bank.documents.length === 0) {
+      return null;
+    }
+
     return parseStringify(bank.documents[0]);
   } catch (error) {
-    console.log(error)
+    console.error('Error in getBank:', error);
+    return null;
   }
 }
 
@@ -286,10 +404,13 @@ export const getBankByAccountId = async ({ accountId }: getBankByAccountIdProps)
       [Query.equal('accountId', [accountId])]
     )
 
-    if(bank.total !== 1) return null;
+    if(bank.total !== 1 || !bank.documents || bank.documents.length === 0) {
+      return null;
+    }
 
     return parseStringify(bank.documents[0]);
   } catch (error) {
-    console.log(error)
+    console.error('Error in getBankByAccountId:', error);
+    return null;
   }
 }

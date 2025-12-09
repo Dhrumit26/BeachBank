@@ -6,6 +6,11 @@ import React from 'react'
 
 const Transfer = async () => {
   const loggedIn = await getLoggedInUser();
+  
+  if(!loggedIn) {
+    return null;
+  }
+
   const accounts = await getAccounts({ 
     userId: loggedIn.$id 
   })

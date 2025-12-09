@@ -34,10 +34,33 @@ export const getAccounts = async ({ userId }: getAccountsProps) => {
           institutionId: accountsResponse.data.item.institution_id!,
         });
 
+        // Get transfer transactions to calculate balance adjustment
+        const transferTransactionsData = await getTransactionsByBankId({
+          bankId: bank.$id,
+        });
+
+        // Calculate net change from transfers (instant transfers affect balance immediately)
+        let balanceAdjustment = 0;
+        if (transferTransactionsData?.documents) {
+          transferTransactionsData.documents.forEach((tx: any) => {
+            const amount = typeof tx.amount === 'string' ? parseFloat(tx.amount) : (tx.amount || 0);
+            if (tx.senderBankId === bank.$id) {
+              // Debit: subtract from balance
+              balanceAdjustment -= amount;
+            } else if (tx.receiverBankId === bank.$id) {
+              // Credit: add to balance
+              balanceAdjustment += amount;
+            }
+          });
+        }
+
+        const plaidBalance = accountData.balances.current!;
+        const adjustedBalance = plaidBalance + balanceAdjustment;
+
         const account = {
           id: accountData.account_id,
-          availableBalance: accountData.balances.available!,
-          currentBalance: accountData.balances.current!,
+          availableBalance: accountData.balances.available! + balanceAdjustment,
+          currentBalance: adjustedBalance, // Include transfer adjustments
           institutionId: institution.institution_id,
           name: accountData.name,
           officialName: accountData.official_name,
@@ -80,15 +103,16 @@ export const getAccount = async ({ appwriteItemId }: getAccountProps) => {
       bankId: bank.$id,
     });
 
-    const transferTransactions = transferTransactionsData.documents.map(
-      (transferData: Transaction) => ({
+    const transferTransactions = (transferTransactionsData?.documents || []).map(
+      (transferData: any) => ({
         id: transferData.$id,
-        name: transferData.name!,
-        amount: transferData.amount!,
-        date: transferData.$createdAt,
-        paymentChannel: transferData.channel,
-        category: transferData.category,
+        name: transferData.name || 'Transfer',
+        amount: typeof transferData.amount === 'string' ? parseFloat(transferData.amount) : (transferData.amount || 0),
+        date: transferData.$createdAt || new Date().toISOString(),
+        paymentChannel: transferData.channel || 'online',
+        category: transferData.category || 'Transfer',
         type: transferData.senderBankId === bank.$id ? "debit" : "credit",
+        image: '/images/placeholder.png',
       })
     );
 
@@ -99,12 +123,30 @@ export const getAccount = async ({ appwriteItemId }: getAccountProps) => {
 
     const transactions = await getTransactions({
       accessToken: bank?.accessToken,
-    });
+    }) || [];
+
+    // Calculate net change from transfers (instant transfers affect balance immediately)
+    let balanceAdjustment = 0;
+    if (transferTransactionsData?.documents) {
+      transferTransactionsData.documents.forEach((tx: any) => {
+        const amount = typeof tx.amount === 'string' ? parseFloat(tx.amount) : (tx.amount || 0);
+        if (tx.senderBankId === bank.$id) {
+          // Debit: subtract from balance
+          balanceAdjustment -= amount;
+        } else if (tx.receiverBankId === bank.$id) {
+          // Credit: add to balance
+          balanceAdjustment += amount;
+        }
+      });
+    }
+
+    const plaidBalance = accountData.balances.current!;
+    const adjustedBalance = plaidBalance + balanceAdjustment;
 
     const account = {
       id: accountData.account_id,
-      availableBalance: accountData.balances.available!,
-      currentBalance: accountData.balances.current!,
+      availableBalance: accountData.balances.available! + balanceAdjustment,
+      currentBalance: adjustedBalance, // Include transfer adjustments
       institutionId: institution.institution_id,
       name: accountData.name,
       officialName: accountData.official_name,
@@ -114,10 +156,13 @@ export const getAccount = async ({ appwriteItemId }: getAccountProps) => {
       appwriteItemId: bank.$id,
     };
 
+    // Combine Plaid transactions and transfer transactions
     // sort transactions by date such that the most recent transaction is first
-      const allTransactions = [...transactions, ...transferTransactions].sort(
+    const allTransactions = [...(transactions || []), ...transferTransactions].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
+
+    console.log('Total transactions:', allTransactions.length, 'Plaid:', transactions?.length || 0, 'Transfers:', transferTransactions.length);
 
     return parseStringify({
       data: account,

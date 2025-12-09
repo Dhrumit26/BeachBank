@@ -76,7 +76,12 @@ export function formatAmount(amount: number): string {
   return formatter.format(amount);
 }
 
-export const parseStringify = (value: any) => JSON.parse(JSON.stringify(value));
+export const parseStringify = (value: any) => {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  return JSON.parse(JSON.stringify(value));
+};
 
 export const removeSpecialCharacters = (value: string) => {
   return value.replace(/[^\w\s]/gi, "");
@@ -184,10 +189,30 @@ export function encryptId(id: string) {
 }
 
 export function decryptId(id: string) {
-  return atob(id);
+  if (!id) {
+    throw new Error('ID is required for decryption');
+  }
+  
+  // Validate Base64 format before decoding
+  const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+  if (!base64Regex.test(id)) {
+    throw new Error('Invalid sharable ID format. Please enter a valid sharable ID.');
+  }
+  
+  try {
+    return atob(id);
+  } catch (error) {
+    throw new Error('Invalid sharable ID. The ID is not correctly encoded. Please check and try again.');
+  }
 }
 
-export const getTransactionStatus = (date: Date) => {
+export const getTransactionStatus = (date: Date, category?: string) => {
+  // For Transfer category transactions, show as Success immediately (instant transfer)
+  if (category === "Transfer") {
+    return "Success";
+  }
+  
+  // For other transactions, use date-based logic
   const today = new Date();
   const twoDaysAgo = new Date(today);
   twoDaysAgo.setDate(today.getDate() - 2);
@@ -203,7 +228,13 @@ export const authFormSchema = (type: string) => z.object({
   city: type === 'sign-in' ? z.string().optional() : z.string().max(50),
   state: type === 'sign-in' ? z.string().optional() : z.string().min(2).max(2),
   postalCode: type === 'sign-in' ? z.string().optional() : z.string().min(3).max(6),
-  dateOfBirth: type === 'sign-in' ? z.string().optional() : z.string().min(3),
+  dateOfBirth: type === 'sign-in' ? z.string().optional() : z.string()
+    .min(10, 'Date of birth must be in YYYY-MM-DD format')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format (e.g., 1990-01-15)')
+    .refine((date) => {
+      const d = new Date(date);
+      return !isNaN(d.getTime()) && d.getFullYear() >= 1900 && d.getFullYear() <= new Date().getFullYear();
+    }, 'Please enter a valid date'),
   ssn: type === 'sign-in' ? z.string().optional() : z.string().min(3),
   // both
   email: z.string().email(),

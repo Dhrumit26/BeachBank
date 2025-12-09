@@ -16,13 +16,13 @@ const Sidebar = ({ user }: SiderbarProps) => {
       <nav className="flex flex-col gap-4">
         <Link href="/" className="mb-12 cursor-pointer flex items-center gap-2">
           <Image 
-            src="/icons/logo.svg"
-            width={34}
-            height={34}
-            alt="Horizon logo"
-            className="size-[24px] max-xl:size-14"
+            src="/icons/elbee.png"
+            width={35}
+            height={35}
+            alt="elbee logo"
+            className="size-[54px] max-xl:size-14"
           />
-          <h1 className="sidebar-logo">Horizon</h1>
+          <h1 className="sidebar-logo">BeachBank</h1>
         </Link>
 
         {sidebarLinks.map((item) => {
@@ -30,7 +30,11 @@ const Sidebar = ({ user }: SiderbarProps) => {
 
           return (
             <Link href={item.route} key={item.label}
-              className={cn('sidebar-link', { 'bg-bank-gradient': isActive })}
+              // className={cn('sidebar-link', { 'bg-bank-gradient': isActive })}
+              className={cn('sidebar-link', {
+                'bg-[#eba904]': isActive,   // emerald-green hex
+              })}
+              // className={cn('sidebar-link', { color:rgb(143, 17, 17)  })} 
             >
               <div className="relative size-6">
                 <Image 

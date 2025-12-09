@@ -1,0 +1,52 @@
+name: Deploy to Netlify
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build
+      run: npm run build
+      env:
+        NEXT_PUBLIC_APPWRITE_ENDPOINT: ${{ secrets.NEXT_PUBLIC_APPWRITE_ENDPOINT }}
+        NEXT_PUBLIC_APPWRITE_PROJECT: ${{ secrets.NEXT_PUBLIC_APPWRITE_PROJECT }}
+        NEXT_APPWRITE_KEY: ${{ secrets.NEXT_APPWRITE_KEY }}
+        APPWRITE_DATABASE_ID: ${{ secrets.APPWRITE_DATABASE_ID }}
+        APPWRITE_USER_COLLECTION_ID: ${{ secrets.APPWRITE_USER_COLLECTION_ID }}
+        APPWRITE_BANK_COLLECTION_ID: ${{ secrets.APPWRITE_BANK_COLLECTION_ID }}
+        APPWRITE_TRANSACTION_COLLECTION_ID: ${{ secrets.APPWRITE_TRANSACTION_COLLECTION_ID }}
+        PLAID_CLIENT_ID: ${{ secrets.PLAID_CLIENT_ID }}
+        PLAID_SECRET: ${{ secrets.PLAID_SECRET }}
+        DWOLLA_KEY: ${{ secrets.DWOLLA_KEY }}
+        DWOLLA_SECRET: ${{ secrets.DWOLLA_SECRET }}
+        DWOLLA_ENV: ${{ secrets.DWOLLA_ENV || 'sandbox' }}
+
+    - name: Deploy to Netlify
+      uses: netlify/actions/cli@master
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      with:
+        args: deploy --dir=.next --prod --message="Deploy from GitHub Actions"
+        secrets: ${{ toJSON(secrets) }}
+
+    - name: Deployment Status
+      run: echo "✅ Successfully deployed to Netlify!"
+
