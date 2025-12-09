@@ -3,7 +3,7 @@ import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
 const getPlaidEnvironment = () => {
   const env = process.env.PLAID_ENV;
   if (!env) {
-    throw new Error('PLAID_ENV environment variable is required');
+    throw new Error('Environment variable is required');
   }
   const envLower = env.toLowerCase();
   
@@ -22,7 +22,7 @@ const getPlaidEnvironment = () => {
     return PlaidEnvironments.sandbox;
   }
   
-  throw new Error(`Invalid PLAID_ENV value: ${env}. Must be set to a valid environment value`);
+  throw new Error(`Invalid environment value: ${env}. Must be set to a valid environment value`);
 };
 
 const configuration = new Configuration({

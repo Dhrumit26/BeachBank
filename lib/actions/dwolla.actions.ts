@@ -6,7 +6,7 @@ const getEnvironment = () => {
   const environment = process.env.DWOLLA_ENV as string;
 
   if (!environment) {
-    throw new Error("DWOLLA_ENV environment variable is required");
+    throw new Error("Environment variable is required");
   }
 
   const envLower = environment.toLowerCase();
@@ -23,7 +23,7 @@ const getEnvironment = () => {
   }
   
   throw new Error(
-    `Invalid DWOLLA_ENV value: ${environment}. Must be set to a valid environment value`
+    `Invalid environment value: ${environment}. Must be set to a valid environment value`
   );
 };
 
