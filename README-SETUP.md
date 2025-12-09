@@ -37,7 +37,7 @@
    ```
 
 4. **Open in browser**
-   - Navigate to `http://localhost:3000`
+   - Navigate to `YOUR_LOCAL_URL` (typically `http://localhost:3000`)
 
 ## Features Included
 

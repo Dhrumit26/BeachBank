@@ -17,7 +17,7 @@ Go to: **Configuration → Environment variables**
 
 Add/Verify these 12 variables:
 
-- [ ] `NEXT_PUBLIC_APPWRITE_ENDPOINT` = `https://cloud.appwrite.io/v1`
+- [ ] `NEXT_PUBLIC_APPWRITE_ENDPOINT` = `YOUR_APPWRITE_ENDPOINT`
 - [ ] `NEXT_PUBLIC_APPWRITE_PROJECT` = (your project ID)
 - [ ] `NEXT_APPWRITE_KEY` = (your API key)
 - [ ] `APPWRITE_DATABASE_ID` = (your database ID)
@@ -28,7 +28,7 @@ Add/Verify these 12 variables:
 - [ ] `PLAID_SECRET` = (your secret)
 - [ ] `DWOLLA_KEY` = (your key)
 - [ ] `DWOLLA_SECRET` = (your secret)
-- [ ] `DWOLLA_ENV` = `sandbox` ⚠️ **MUST BE "sandbox" or "production"**
+- [ ] `DWOLLA_ENV` = `YOUR_DWOLLA_ENV` ⚠️ **MUST BE "sandbox" or "production"**
 
 ### 2. Build Settings
 - [ ] Build command: `npm run build` (should be auto-detected)
@@ -57,7 +57,7 @@ Add/Verify these 12 variables:
 1. **Check build logs** in Netlify → Deploys → Latest deployment
 2. **Look for specific error messages**
 3. **Verify all environment variables are set correctly**
-4. **Make sure DWOLLA_ENV = "sandbox" (exactly, no quotes in value)**
+4. **Make sure DWOLLA_ENV is set correctly (must be "sandbox" or "production", no quotes in value)**
 
 ---
 

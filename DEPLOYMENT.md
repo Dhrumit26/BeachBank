@@ -173,8 +173,8 @@ After deployment:
 
 ## 📝 Notes
 
-- For production, switch Plaid and Dwolla from `sandbox` to `production`
-- Update `DWOLLA_ENV` to `production` when ready
+- For production, switch Plaid and Dwolla environment variables from development to production
+- Update `DWOLLA_ENV` to production value when ready
 - Make sure to use production API keys for live transactions
-- Test thoroughly in sandbox before going live
+- Test thoroughly in development environment before going live
 

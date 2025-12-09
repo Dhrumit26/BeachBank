@@ -5,16 +5,17 @@ const getPlaidEnvironment = () => {
   if (!env) {
     throw new Error('PLAID_ENV environment variable is required');
   }
-  switch (env) {
-    case 'production':
-      return PlaidEnvironments.production;
-    case 'development':
-      return PlaidEnvironments.development;
-    case 'sandbox':
-      return PlaidEnvironments.sandbox;
-    default:
-      throw new Error(`Invalid PLAID_ENV value: ${env}. Must be 'sandbox', 'development', or 'production'`);
+  const envLower = env.toLowerCase();
+  if (envLower === 'production') {
+    return PlaidEnvironments.production;
   }
+  if (envLower === 'development') {
+    return PlaidEnvironments.development;
+  }
+  if (envLower === 'sandbox') {
+    return PlaidEnvironments.sandbox;
+  }
+  throw new Error(`Invalid PLAID_ENV value: ${env}. Must be one of: sandbox, development, or production`);
 };
 
 const configuration = new Configuration({
