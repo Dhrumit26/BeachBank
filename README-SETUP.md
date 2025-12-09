@@ -28,7 +28,7 @@
      # Dwolla
      DWOLLA_KEY=your_dwolla_key
      DWOLLA_SECRET=your_dwolla_secret
-     DWOLLA_ENV=sandbox
+     DWOLLA_ENV=YOUR_DWOLLA_ENV
      ```
 
 3. **Run the development server**

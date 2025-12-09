@@ -36,7 +36,7 @@ jobs:
         PLAID_SECRET: ${{ secrets.PLAID_SECRET }}
         DWOLLA_KEY: ${{ secrets.DWOLLA_KEY }}
         DWOLLA_SECRET: ${{ secrets.DWOLLA_SECRET }}
-        DWOLLA_ENV: ${{ secrets.DWOLLA_ENV || 'sandbox' }}
+        DWOLLA_ENV: ${{ secrets.DWOLLA_ENV }}
 
     - name: Deploy to Netlify
       uses: netlify/actions/cli@master
@@ -54,7 +54,7 @@ jobs:
         PLAID_SECRET: ${{ secrets.PLAID_SECRET }}
         DWOLLA_KEY: ${{ secrets.DWOLLA_KEY }}
         DWOLLA_SECRET: ${{ secrets.DWOLLA_SECRET }}
-        DWOLLA_ENV: ${{ secrets.DWOLLA_ENV || 'sandbox' }}
+        DWOLLA_ENV: ${{ secrets.DWOLLA_ENV }}
       with:
         args: deploy --dir=.next --prod --message="Deploy from GitHub Actions" ${{ secrets.NETLIFY_SITE_ID && format('--site={0}', secrets.NETLIFY_SITE_ID) || '' }}
         secrets: ${{ toJSON(secrets) }}

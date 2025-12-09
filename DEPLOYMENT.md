@@ -76,7 +76,7 @@ PLAID_SECRET=your_plaid_secret
 # Dwolla Configuration
 DWOLLA_KEY=your_dwolla_key
 DWOLLA_SECRET=your_dwolla_secret
-DWOLLA_ENV=sandbox
+DWOLLA_ENV=YOUR_DWOLLA_ENV
 
 # Sentry (Optional - if using)
 SENTRY_AUTH_TOKEN=your_sentry_token

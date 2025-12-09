@@ -107,7 +107,7 @@ Add each secret one by one (click "New repository secret" for each):
 #### Appwrite Secrets:
 ```
 Name: NEXT_PUBLIC_APPWRITE_ENDPOINT
-Value: https://cloud.appwrite.io/v1 (or your endpoint)
+Value: YOUR_APPWRITE_ENDPOINT
 ```
 
 ```
@@ -164,7 +164,7 @@ Value: your_dwolla_secret
 
 ```
 Name: DWOLLA_ENV
-Value: sandbox
+Value: YOUR_DWOLLA_ENV
 ```
 
 #### Netlify Secrets:
