@@ -64,7 +64,7 @@ export const signIn = async ({ email, password }: signInProps) => {
       path: "/",
       httpOnly: true,
       sameSite: "strict",
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
     });
 
     const user = await getUserInfo({ userId: session.userId }) 
@@ -82,8 +82,10 @@ export const signIn = async ({ email, password }: signInProps) => {
 
     return parseStringify(user);
     // return parseStringify(response);
-  } catch (error) {
-    console.error('Error', error);
+  } catch (error: any) {
+    console.error('Sign in error:', error);
+    // Re-throw error so it can be handled by the UI
+    throw new Error(error?.message || 'Failed to sign in. Please check your credentials and try again.');
   }
 }
 
@@ -187,7 +189,7 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
       path: "/",
       httpOnly: true,
       sameSite: "strict",
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
     });
 
     return parseStringify(newUser);
