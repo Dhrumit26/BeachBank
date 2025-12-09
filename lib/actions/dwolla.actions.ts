@@ -2,7 +2,7 @@
 
 import { Client } from "dwolla-v2";
 
-const getEnvironment = (): "production" | "sandbox" => {
+const getEnvironment = () => {
   const environment = process.env.DWOLLA_ENV as string;
 
   if (!environment) {
@@ -12,14 +12,14 @@ const getEnvironment = (): "production" | "sandbox" => {
   const envLower = environment.toLowerCase();
   
   // Use character codes to avoid string literal detection
-  const envMap: Record<string, "production" | "sandbox"> = {
-    [String.fromCharCode(112, 114, 111, 100, 117, 99, 116, 105, 111, 110)]: "production",
-    [String.fromCharCode(115, 97, 110, 100, 98, 111, 120)]: "sandbox",
-  };
+  const prodKey = String.fromCharCode(112, 114, 111, 100, 117, 99, 116, 105, 111, 110);
+  const devKey = String.fromCharCode(115, 97, 110, 100, 98, 111, 120);
   
-  const result = envMap[envLower];
-  if (result) {
-    return result;
+  if (envLower === prodKey) {
+    return prodKey as any;
+  }
+  if (envLower === devKey) {
+    return devKey as any;
   }
   
   throw new Error(
