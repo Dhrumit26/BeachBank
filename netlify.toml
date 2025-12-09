@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "20"
+  DWOLLA_ENV = "sandbox"
+
+# Configure secrets scanning to ignore cache files
+[context.production.environment]
+  SECRETS_SCAN_OMIT_PATHS = ".netlify/**,.next/cache/**,node_modules/**"
+
