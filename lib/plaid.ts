@@ -1,15 +1,19 @@
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
 
 const getPlaidEnvironment = () => {
-  const env = process.env.PLAID_ENV || 'sandbox';
+  const env = process.env.PLAID_ENV;
+  if (!env) {
+    throw new Error('PLAID_ENV environment variable is required');
+  }
   switch (env) {
     case 'production':
       return PlaidEnvironments.production;
     case 'development':
       return PlaidEnvironments.development;
     case 'sandbox':
-    default:
       return PlaidEnvironments.sandbox;
+    default:
+      throw new Error(`Invalid PLAID_ENV value: ${env}. Must be 'sandbox', 'development', or 'production'`);
   }
 };
 
