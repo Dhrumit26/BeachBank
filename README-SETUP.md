@@ -37,7 +37,7 @@
    ```
 
 4. **Open in browser**
-   - Navigate to `YOUR_LOCAL_URL` (typically `http://localhost:3000`)
+   - Navigate to your local development URL (default port is 3000)
 
 ## Features Included
 

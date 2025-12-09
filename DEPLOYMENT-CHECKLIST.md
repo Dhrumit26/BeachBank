@@ -28,7 +28,7 @@ Add/Verify these 12 variables:
 - [ ] `PLAID_SECRET` = (your secret)
 - [ ] `DWOLLA_KEY` = (your key)
 - [ ] `DWOLLA_SECRET` = (your secret)
-- [ ] `DWOLLA_ENV` = `YOUR_DWOLLA_ENV` ⚠️ **MUST BE "sandbox" or "production"**
+- [ ] `DWOLLA_ENV` = `YOUR_DWOLLA_ENV` ⚠️ **Must be set to appropriate environment value**
 
 ### 2. Build Settings
 - [ ] Build command: `npm run build` (should be auto-detected)
@@ -57,7 +57,7 @@ Add/Verify these 12 variables:
 1. **Check build logs** in Netlify → Deploys → Latest deployment
 2. **Look for specific error messages**
 3. **Verify all environment variables are set correctly**
-4. **Make sure DWOLLA_ENV is set correctly (must be "sandbox" or "production", no quotes in value)**
+4. **Make sure DWOLLA_ENV is set correctly in your environment variables (no quotes in value)**
 
 ---
 
