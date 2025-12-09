@@ -42,9 +42,21 @@ jobs:
       uses: netlify/actions/cli@master
       env:
         NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        # Pass environment variables to Netlify
+        NEXT_PUBLIC_APPWRITE_ENDPOINT: ${{ secrets.NEXT_PUBLIC_APPWRITE_ENDPOINT }}
+        NEXT_PUBLIC_APPWRITE_PROJECT: ${{ secrets.NEXT_PUBLIC_APPWRITE_PROJECT }}
+        NEXT_APPWRITE_KEY: ${{ secrets.NEXT_APPWRITE_KEY }}
+        APPWRITE_DATABASE_ID: ${{ secrets.APPWRITE_DATABASE_ID }}
+        APPWRITE_USER_COLLECTION_ID: ${{ secrets.APPWRITE_USER_COLLECTION_ID }}
+        APPWRITE_BANK_COLLECTION_ID: ${{ secrets.APPWRITE_BANK_COLLECTION_ID }}
+        APPWRITE_TRANSACTION_COLLECTION_ID: ${{ secrets.APPWRITE_TRANSACTION_COLLECTION_ID }}
+        PLAID_CLIENT_ID: ${{ secrets.PLAID_CLIENT_ID }}
+        PLAID_SECRET: ${{ secrets.PLAID_SECRET }}
+        DWOLLA_KEY: ${{ secrets.DWOLLA_KEY }}
+        DWOLLA_SECRET: ${{ secrets.DWOLLA_SECRET }}
+        DWOLLA_ENV: ${{ secrets.DWOLLA_ENV || 'sandbox' }}
       with:
-        args: deploy --dir=.next --prod --message="Deploy from GitHub Actions"
+        args: deploy --dir=.next --prod --message="Deploy from GitHub Actions" ${{ secrets.NETLIFY_SITE_ID && format('--site={0}', secrets.NETLIFY_SITE_ID) || '' }}
         secrets: ${{ toJSON(secrets) }}
 
     - name: Deployment Status
