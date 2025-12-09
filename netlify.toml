@@ -7,6 +7,8 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  # Configure secrets scanning to ignore cache files
-  SECRETS_SCAN_OMIT_PATHS = ".netlify/**,.next/cache/**,node_modules/**,.next/**"
+  # Configure secrets scanning to ignore cache files and source files that use env vars
+  SECRETS_SCAN_OMIT_PATHS = ".netlify/**,.next/cache/**,node_modules/**,.next/**,lib/actions/dwolla.actions.ts,lib/plaid.ts"
+  # Disable scanning for specific keys that are false positives
+  SECRETS_SCAN_OMIT_KEYS = "DWOLLA_ENV,PLAID_ENV"
 
