@@ -3,24 +3,17 @@
 import { ID, Query } from "node-appwrite";
 import { createAdminClient } from "../appwrite";
 import { parseStringify } from "../utils";
+import { createTransaction as createPostgresTransaction } from "./postgres.transactions.actions";
 
 const {
   APPWRITE_DATABASE_ID: DATABASE_ID,
   APPWRITE_TRANSACTION_COLLECTION_ID: TRANSACTION_COLLECTION_ID,
 } = process.env;
 
+// Use PostgreSQL for transactions (primary), with Appwrite as fallback
 export const createTransaction = async (transaction: CreateTransactionProps) => {
   try {
     console.log('Creating transaction with data:', transaction);
-    console.log('Database ID:', DATABASE_ID);
-    console.log('Transaction Collection ID:', TRANSACTION_COLLECTION_ID);
-    
-    if (!DATABASE_ID || !TRANSACTION_COLLECTION_ID) {
-      console.error('Missing database or collection ID environment variables');
-      throw new Error('Database configuration is missing');
-    }
-
-    const { database } = await createAdminClient();
 
     // Validate and convert input data
     const senderId = transaction.senderId;
@@ -31,8 +24,6 @@ export const createTransaction = async (transaction: CreateTransactionProps) => 
       receiverId,
       senderIdType: typeof senderId,
       receiverIdType: typeof receiverId,
-      senderIdValue: senderId,
-      receiverIdValue: receiverId
     });
 
     // Ensure senderId and receiverId are valid strings
@@ -47,68 +38,104 @@ export const createTransaction = async (transaction: CreateTransactionProps) => 
     const senderIdStr = String(senderId).trim();
     const receiverIdStr = String(receiverId).trim();
 
-    // Validate string length (Appwrite limit is 1000 chars)
-    if (senderIdStr.length === 0 || senderIdStr.length > 1000) {
-      throw new Error(`Invalid senderId: must be between 1 and 1000 characters. Length: ${senderIdStr.length}`);
+    // Validate string length
+    if (senderIdStr.length === 0) {
+      throw new Error(`Invalid senderId: must not be empty`);
     }
     
-    if (receiverIdStr.length === 0 || receiverIdStr.length > 1000) {
-      throw new Error(`Invalid receiverId: must be between 1 and 1000 characters. Length: ${receiverIdStr.length}`);
+    if (receiverIdStr.length === 0) {
+      throw new Error(`Invalid receiverId: must not be empty`);
     }
 
-    // Validate and format amount as string (database requires string, max 100 chars)
+    // Validate and format amount
     const amountStr = String(transaction.amount || '0').trim();
     const amountNum = parseFloat(amountStr);
     
     if (isNaN(amountNum) || amountNum <= 0) {
       throw new Error('Invalid transaction amount');
     }
-    
-    // Format amount as string with 2 decimal places, max 100 chars
-    const formattedAmount = amountNum.toFixed(2);
-    if (formattedAmount.length > 100) {
-      throw new Error(`Transaction amount is too long (max 100 characters). Length: ${formattedAmount.length}`);
-    }
-
-    // Ensure all fields are valid strings
-    const transactionData = {
-      channel: 'online',
-      category: 'Transfer',
-      name: String(transaction.name || '').trim(),
-      amount: formattedAmount, // Keep as string (database requirement)
-      senderId: senderIdStr, // Validated string
-      senderBankId: String(transaction.senderBankId || '').trim(),
-      receiverId: receiverIdStr, // Validated string
-      receiverBankId: String(transaction.receiverBankId || '').trim(),
-      email: String(transaction.email || '').trim(),
-    };
 
     // Validate other required fields
-    if (!transactionData.senderBankId || !transactionData.receiverBankId) {
+    if (!transaction.senderBankId || !transaction.receiverBankId) {
       throw new Error('Missing required transaction fields: senderBankId or receiverBankId');
     }
 
-    console.log('Transaction data to save:', transactionData);
+    // Try PostgreSQL first
+    try {
+      const postgresTransaction = await createPostgresTransaction({
+        senderId: senderIdStr,
+        receiverId: receiverIdStr,
+        senderBankId: transaction.senderBankId,
+        receiverBankId: transaction.receiverBankId,
+        name: String(transaction.name || '').trim(),
+        amount: amountNum,
+        type: 'debit', // Transfer is a debit for sender
+        category: 'Transfer',
+        channel: 'online',
+        paymentChannel: 'online',
+        pending: false,
+        date: new Date().toISOString().split('T')[0],
+        email: String(transaction.email || '').trim(),
+      });
 
-    const newTransaction = await database.createDocument(
-      DATABASE_ID,
-      TRANSACTION_COLLECTION_ID,
-      ID.unique(),
-      transactionData
-    )
+      console.log('Transaction created successfully in PostgreSQL:', postgresTransaction.id);
+      return parseStringify(postgresTransaction);
+    } catch (postgresError) {
+      console.warn('PostgreSQL transaction creation failed, falling back to Appwrite:', postgresError);
+      
+      // Fallback to Appwrite if PostgreSQL fails
+      if (!DATABASE_ID || !TRANSACTION_COLLECTION_ID) {
+        throw new Error('Database configuration is missing');
+      }
 
-    console.log('Transaction created successfully:', newTransaction.$id);
-    return parseStringify(newTransaction);
+      const { database } = await createAdminClient();
+      const formattedAmount = amountNum.toFixed(2);
+
+      const transactionData = {
+        channel: 'online',
+        category: 'Transfer',
+        name: String(transaction.name || '').trim(),
+        amount: formattedAmount,
+        senderId: senderIdStr,
+        senderBankId: String(transaction.senderBankId || '').trim(),
+        receiverId: receiverIdStr,
+        receiverBankId: String(transaction.receiverBankId || '').trim(),
+        email: String(transaction.email || '').trim(),
+      };
+
+      const newTransaction = await database.createDocument(
+        DATABASE_ID,
+        TRANSACTION_COLLECTION_ID,
+        ID.unique(),
+        transactionData
+      );
+
+      console.log('Transaction created successfully in Appwrite:', newTransaction.$id);
+      return parseStringify(newTransaction);
+    }
   } catch (error: any) {
     console.error('Error creating transaction:', error);
     console.error('Error details:', JSON.stringify(error, null, 2));
-    // Re-throw error so caller can handle it
     throw new Error(`Failed to create transaction record: ${error?.message || 'Unknown error'}`);
   }
 }
 
 export const getTransactionsByBankId = async ({bankId}: getTransactionsByBankIdProps) => {
   try {
+    // Try PostgreSQL first
+    try {
+      const { getTransactionsByBankId: getPostgresTransactions } = await import("./postgres.transactions.actions");
+      const postgresTransactions = await getPostgresTransactions(bankId);
+      
+      if (postgresTransactions && postgresTransactions.total > 0) {
+        console.log(`Found ${postgresTransactions.total} transfer transactions in PostgreSQL for bank ${bankId}`);
+        return parseStringify(postgresTransactions);
+      }
+    } catch (postgresError) {
+      console.warn('PostgreSQL query failed, falling back to Appwrite:', postgresError);
+    }
+
+    // Fallback to Appwrite
     const { database } = await createAdminClient();
 
     if (!DATABASE_ID || !TRANSACTION_COLLECTION_ID) {
@@ -136,7 +163,7 @@ export const getTransactionsByBankId = async ({bankId}: getTransactionsByBankIdP
       ]
     }
 
-    console.log(`Found ${transactions.total} transfer transactions for bank ${bankId}`);
+    console.log(`Found ${transactions.total} transfer transactions in Appwrite for bank ${bankId}`);
     return parseStringify(transactions);
   } catch (error) {
     console.error('Error getting transactions by bank ID:', error);
