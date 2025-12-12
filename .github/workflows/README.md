@@ -13,13 +13,7 @@ This directory contains GitHub Actions workflows for automated CI/CD.
   - Uploads build artifacts
   - Comments on PRs with build status
 
-### 2. `deploy-vercel.yml` - Deploy to Vercel
-- **Triggers:** Push to main/master, Manual trigger
-- **Actions:**
-  - Builds the project
-  - Deploys to Vercel production
-
-### 3. `deploy-netlify.yml` - Deploy to Netlify
+### 2. `deploy-netlify.yml` - Deploy to Netlify
 - **Triggers:** Push to main/master, Manual trigger
 - **Actions:**
   - Builds the project
@@ -49,27 +43,13 @@ DWOLLA_SECRET
 DWOLLA_ENV
 ```
 
-#### For Vercel Deployment:
-```
-VERCEL_TOKEN
-VERCEL_ORG_ID
-VERCEL_PROJECT_ID
-```
-
 #### For Netlify Deployment:
 ```
 NETLIFY_AUTH_TOKEN
 NETLIFY_SITE_ID
 ```
 
-### 2. Get Vercel Credentials (if using Vercel)
-
-1. Install Vercel CLI: `npm i -g vercel`
-2. Run: `vercel login`
-3. Run: `vercel link` in your project
-4. Get your tokens from Vercel Dashboard → Settings → Tokens
-
-### 3. Get Netlify Credentials (if using Netlify)
+### 2. Get Netlify Credentials
 
 1. Go to Netlify Dashboard → User settings → Applications → New access token
 2. Get Site ID from Site settings → General → Site details
