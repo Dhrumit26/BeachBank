@@ -36,7 +36,10 @@ function getPool(): Pool | null {
       
       pool = new Pool({
         connectionString: connectionString,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : { rejectUnauthorized: false },
+        // Always allow self-signed certificates for Supabase
+        ssl: {
+          rejectUnauthorized: false
+        },
       });
 
       // Test the connection (only log, don't exit on error during build)
