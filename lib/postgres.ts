@@ -37,8 +37,10 @@ function getPool(): Pool | null {
       pool = new Pool({
         connectionString: connectionString,
         // Always allow self-signed certificates for Supabase
+        // This is required for Supabase pooler connections
         ssl: {
-          rejectUnauthorized: false
+          rejectUnauthorized: false,
+          require: true
         },
       });
 
