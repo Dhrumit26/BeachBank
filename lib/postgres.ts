@@ -26,9 +26,17 @@ function getPool(): Pool | null {
   // Create pool if it doesn't exist
   if (!pool) {
     try {
+      // Ensure SSL is enabled for Supabase (required)
+      let connectionString = process.env.POSTGRES_URL || '';
+      
+      // Add sslmode=require if not already present (required for Supabase)
+      if (connectionString && !connectionString.includes('sslmode=')) {
+        connectionString += (connectionString.includes('?') ? '&' : '?') + 'sslmode=require';
+      }
+      
       pool = new Pool({
-        connectionString: process.env.POSTGRES_URL,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+        connectionString: connectionString,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : { rejectUnauthorized: false },
       });
 
       // Test the connection (only log, don't exit on error during build)
