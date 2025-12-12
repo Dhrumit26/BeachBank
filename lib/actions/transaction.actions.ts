@@ -62,6 +62,7 @@ export const createTransaction = async (transaction: CreateTransactionProps) => 
 
     // Try PostgreSQL first
     try {
+      console.log('🔄 Attempting to create transaction in PostgreSQL...');
       const postgresTransaction = await createPostgresTransaction({
         senderId: senderIdStr,
         receiverId: receiverIdStr,
@@ -78,10 +79,12 @@ export const createTransaction = async (transaction: CreateTransactionProps) => 
         email: String(transaction.email || '').trim(),
       });
 
-      console.log('Transaction created successfully in PostgreSQL:', postgresTransaction.id);
+      console.log('✅ Transaction created successfully in PostgreSQL:', postgresTransaction.id);
       return parseStringify(postgresTransaction);
-    } catch (postgresError) {
-      console.warn('PostgreSQL transaction creation failed, falling back to Appwrite:', postgresError);
+    } catch (postgresError: any) {
+      console.warn('⚠️ PostgreSQL transaction creation failed, falling back to Appwrite');
+      console.warn('⚠️ PostgreSQL error:', postgresError?.message || postgresError);
+      console.warn('⚠️ PostgreSQL error details:', JSON.stringify(postgresError, null, 2));
       
       // Fallback to Appwrite if PostgreSQL fails
       if (!DATABASE_ID || !TRANSACTION_COLLECTION_ID) {
