@@ -72,27 +72,29 @@ export const getAccounts = async ({ userId }: getAccountsProps) => {
           sharaebleId: bank.shareableId,
         };
 
-        // Sync account to PostgreSQL (non-blocking)
-        try {
-          await createOrUpdateAccount({
-            accountId: accountData.account_id,
-            userId: userId,
-            bankId: bank.$id,
-            appwriteItemId: bank.$id,
-            shareableId: bank.shareableId,
-            institutionId: institution.institution_id,
-            name: accountData.name,
-            officialName: accountData.official_name,
-            mask: accountData.mask!,
-            type: accountData.type as string,
-            subtype: accountData.subtype! as string,
-            availableBalance: accountData.balances.available! + balanceAdjustment,
-            currentBalance: adjustedBalance,
-            accessToken: bank.accessToken,
-            fundingSourceUrl: bank.fundingSourceUrl,
-          });
-        } catch (postgresError) {
-          console.warn('Failed to sync account to PostgreSQL (non-critical):', postgresError);
+        // Sync account to PostgreSQL (non-blocking, only in runtime)
+        if (process.env.NEXT_PHASE !== 'phase-production-build') {
+          try {
+            await createOrUpdateAccount({
+              accountId: accountData.account_id,
+              userId: userId,
+              bankId: bank.$id,
+              appwriteItemId: bank.$id,
+              shareableId: bank.shareableId,
+              institutionId: institution.institution_id,
+              name: accountData.name,
+              officialName: accountData.official_name,
+              mask: accountData.mask!,
+              type: accountData.type as string,
+              subtype: accountData.subtype! as string,
+              availableBalance: accountData.balances.available! + balanceAdjustment,
+              currentBalance: adjustedBalance,
+              accessToken: bank.accessToken,
+              fundingSourceUrl: bank.fundingSourceUrl,
+            });
+          } catch (postgresError) {
+            console.warn('Failed to sync account to PostgreSQL (non-critical):', postgresError);
+          }
         }
 
         return account;

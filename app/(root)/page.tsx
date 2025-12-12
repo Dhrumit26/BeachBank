@@ -284,22 +284,28 @@ const dummyTransactionsForCategories: Transaction[] = [
 
 const Home = async ({ searchParams: { id, page } }: SearchParamProps) => {
   const currentPage = Number(page as string) || 1;
-  const loggedIn = await getLoggedInUser();
   
-  if(!loggedIn) {
-    return null;
-  }
+  try {
+    const loggedIn = await getLoggedInUser();
+    
+    if(!loggedIn) {
+      return null;
+    }
 
-  const accounts = await getAccounts({ 
-    userId: loggedIn.$id 
-  })
+    const accounts = await getAccounts({ 
+      userId: loggedIn.$id 
+    })
 
-  if(!accounts) return;
-  
-  const accountsData = accounts?.data;
-  const appwriteItemId = (id as string) || accountsData[0]?.appwriteItemId;
+    if(!accounts) return null;
+    
+    const accountsData = accounts?.data || [];
+    const appwriteItemId = (id as string) || accountsData[0]?.appwriteItemId;
 
-  const account = await getAccount({ appwriteItemId })
+    if (!appwriteItemId) {
+      return null;
+    }
+
+    const account = await getAccount({ appwriteItemId })
 
   // Combine real transactions with dummy transactions for categories
   const realTransactions = (account?.transactions || []).map((tx: any) => ({
@@ -359,6 +365,14 @@ const Home = async ({ searchParams: { id, page } }: SearchParamProps) => {
       />
     </section>
   )
+  } catch (error) {
+    console.error('Error loading home page:', error);
+    // Return a basic error state during build, or redirect in runtime
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export default Home
