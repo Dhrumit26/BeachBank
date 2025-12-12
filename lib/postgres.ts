@@ -29,18 +29,16 @@ function getPool(): Pool | null {
       // Ensure SSL is enabled for Supabase (required)
       let connectionString = process.env.POSTGRES_URL || '';
       
-      // Add sslmode=require if not already present (required for Supabase)
-      if (connectionString && !connectionString.includes('sslmode=')) {
-        connectionString += (connectionString.includes('?') ? '&' : '?') + 'sslmode=require';
-      }
+      // Remove sslmode from connection string if present (we'll handle SSL in Pool config)
+      connectionString = connectionString.replace(/[?&]sslmode=[^&]*/g, '');
       
       pool = new Pool({
         connectionString: connectionString,
         // Always allow self-signed certificates for Supabase
         // This is required for Supabase pooler connections
+        // Setting ssl: true forces SSL but allows self-signed certs
         ssl: {
-          rejectUnauthorized: false,
-          require: true
+          rejectUnauthorized: false
         },
       });
 
