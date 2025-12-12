@@ -1,8 +1,14 @@
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
 
+let plaidClientInstance: PlaidApi | null = null;
+
 const getPlaidEnvironment = () => {
   const env = process.env.PLAID_ENV;
   if (!env) {
+    // Don't throw during build - return sandbox as default
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return PlaidEnvironments.sandbox;
+    }
     throw new Error('Environment variable is required');
   }
   const envLower = env.toLowerCase();
@@ -22,17 +28,39 @@ const getPlaidEnvironment = () => {
     return PlaidEnvironments.sandbox;
   }
   
+  // Don't throw during build
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return PlaidEnvironments.sandbox;
+  }
+  
   throw new Error(`Invalid environment value: ${env}. Must be set to a valid environment value`);
 };
 
-const configuration = new Configuration({
-  basePath: getPlaidEnvironment(),
-  baseOptions: {
-    headers: {
-      'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID,
-      'PLAID-SECRET': process.env.PLAID_SECRET,
-    }
+// Lazy initialization - only create client when needed
+function getPlaidClient(): PlaidApi {
+  if (!plaidClientInstance) {
+    const configuration = new Configuration({
+      basePath: getPlaidEnvironment(),
+      baseOptions: {
+        headers: {
+          'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID || '',
+          'PLAID-SECRET': process.env.PLAID_SECRET || '',
+        }
+      }
+    });
+    plaidClientInstance = new PlaidApi(configuration);
   }
-})
+  return plaidClientInstance;
+}
 
-export const plaidClient = new PlaidApi(configuration);
+// Export a getter that initializes lazily
+export const plaidClient = new Proxy({} as PlaidApi, {
+  get(target, prop) {
+    const client = getPlaidClient();
+    const value = (client as any)[prop];
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+    return value;
+  }
+});
