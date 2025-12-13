@@ -17,22 +17,14 @@
 
 ## 📸 Screenshots
 
-> **Note:** Add screenshots of your application here. Recommended screenshots:
-> - Home Dashboard with account overview
-> - My Banks page showing connected accounts
-> - Transaction History with filters
-> - Payment Transfer interface
-> - Sign In/Sign Up pages
+<img width="1507" height="826" alt="Screenshot 2025-12-13 at 2 50 26 PM" src="https://github.com/user-attachments/assets/4d2d5d63-3ae3-436b-87c5-e0f2aaeefd34" />
+<img width="1512" height="829" alt="Screenshot 2025-12-13 at 2 51 22 PM" src="https://github.com/user-attachments/assets/a68739e4-b238-49fb-a662-f5e2c174569c" />
+<img width="1512" height="830" alt="Screenshot 2025-12-13 at 2 51 33 PM" src="https://github.com/user-attachments/assets/b1d5f5cd-e8f4-4b67-9cba-2c0bc32cc81e" />
+<img width="1512" height="827" alt="Screenshot 2025-12-13 at 2 53 03 PM" src="https://github.com/user-attachments/assets/bf0c59e1-5bd0-4d99-b8ac-d637f84e4073" />
+<img width="1512" height="828" alt="Screenshot 2025-12-13 at 2 53 14 PM" src="https://github.com/user-attachments/assets/d40ea6c0-fa2a-47b4-96f9-bd73afaa5999" />
+<img width="1013" height="791" alt="Screenshot 2025-12-13 at 2 53 24 PM" src="https://github.com/user-attachments/assets/17eacb26-836c-4d49-adf4-f1f7eb9b5154" />
 
-<!-- 
-Add your screenshots like this:
-![Home Dashboard](./screenshots/home-dashboard.png)
-![My Banks](./screenshots/my-banks.png)
-![Transaction History](./screenshots/transaction-history.png)
-![Payment Transfer](./screenshots/payment-transfer.png)
--->
 
----
 
 ## 🎯 Project Overview
 
