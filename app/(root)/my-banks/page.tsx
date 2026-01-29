@@ -1,4 +1,4 @@
-nvAAaaaaaaaan
+nvAAaaaaaaaana
 import BankCard from '@/components/BankCard';
 import HeaderBox from '@/components/HeaderBoxã
 import { getAccounts } from '@/lib/actions/bank.actions';
