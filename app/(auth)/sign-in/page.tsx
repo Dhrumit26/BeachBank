@@ -1,6 +1,3 @@
-ewfqhfuhweiufhiuwhc
-
-
 import AuthForm from '@/components/AuthForm'
 
 const SignIn = () => {
