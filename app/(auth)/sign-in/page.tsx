@@ -1,5 +1,3 @@
-aarfegwstrhgerqgw
-
 import AuthForm from '@/components/AuthForm'
 
 const SignIn = () => {
@@ -11,5 +9,3 @@ const SignIn = () => {
 }
 
 export default SignIn
-
-aerghviuajernkjfdvsklwfaer
